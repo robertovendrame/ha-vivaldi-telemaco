@@ -35,11 +35,12 @@ specifica completa **Telemaco RestAPI 1.2.0**.
 
 ## Installazione come repository HACS personalizzato
 
-Pubblicare questa cartella in un repository GitHub, quindi in HACS scegliere:
+In HACS scegliere:
 
 1. **Integrazioni → menu ⋮ → Repository personalizzati**.
-2. Incollare l'URL del repository.
+2. Incollare `https://github.com/robertovendrame/ha-vivaldi-telemaco`.
 3. Categoria: **Integrazione**.
+4. Installare **Vivaldi Telemaco** e riavviare Home Assistant.
 
 ## Parametri
 
