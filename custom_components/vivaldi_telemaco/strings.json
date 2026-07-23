@@ -1,0 +1,59 @@
+{
+  "title": "Vivaldi Telemaco",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Collega Vivaldi Telemaco",
+        "description": "Inserisci i parametri locali del dispositivo. In modalità ibrida MQTT gestisce gli aggiornamenti e REST fa da fallback.",
+        "data": {
+          "name": "Nome",
+          "host": "Indirizzo IP o hostname",
+          "port": "Porta REST",
+          "transport": "Trasporto",
+          "api_token": "Token API",
+          "username": "Nome utente Telemaco",
+          "password": "Password Telemaco",
+          "mqtt_prefix": "Prefisso topic MQTT",
+          "zone_count": "Numero di zone",
+          "player_count": "Numero di player",
+          "verify_ssl": "Verifica certificato SSL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile raggiungere Telemaco",
+      "invalid_auth": "Token API non valido",
+      "unsupported_firmware": "Endpoint REST non riconosciuto: serve la documentazione API del firmware"
+    },
+    "abort": {
+      "already_configured": "Questo Telemaco è già configurato"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni Telemaco",
+        "data": {
+          "scan_interval": "Intervallo aggiornamento REST (secondi)",
+          "zone_count": "Numero di zone",
+          "player_count": "Numero di player"
+        }
+      }
+    }
+  },
+  "entity": {
+    "media_player": {
+      "zone": {"name": "Zona"},
+      "player": {"name": "Player"}
+    },
+    "sensor": {
+      "firmware": {"name": "Firmware"}
+    },
+    "binary_sensor": {
+      "amplifier_error": {"name": "Errore amplificatore"}
+    },
+    "button": {
+      "refresh": {"name": "Aggiorna"}
+    }
+  }
+}

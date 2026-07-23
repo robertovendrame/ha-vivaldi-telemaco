@@ -1,0 +1,50 @@
+send_command:
+  name: Invia comando
+  description: Invia un comando JSON avanzato al Telemaco. Usare solo con la documentazione API Vivaldi.
+  fields:
+    command:
+      name: Comando
+      required: true
+      selector:
+        text:
+    payload:
+      name: Payload
+      required: false
+      default: {}
+      selector:
+        object:
+
+play_preset:
+  name: Riproduci preset
+  description: Richiama un preset su uno dei player indipendenti.
+  fields:
+    player:
+      name: Player
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 6
+          mode: box
+    preset:
+      name: Preset
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999
+          mode: box
+
+doorbell:
+  name: Campanello
+  description: Riproduce il suono campanello nelle zone indicate; lista vuota per tutte le zone abilitate.
+  fields:
+    sound:
+      name: ID suono
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 999
+          mode: box

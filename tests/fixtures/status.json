@@ -1,0 +1,26 @@
+{
+  "device": {
+    "serial": "TM-DEMO-001",
+    "name": "Telemaco Demo",
+    "model": "TELEMACO",
+    "firmware": "1.0.0",
+    "paired": false
+  },
+  "sources": ["Player 1", "Player 2", "Player 3", "Player 4", "AUX 1", "AUX 2", "AUX 3"],
+  "presets": {"1": "Radio", "2": "Relax"},
+  "zones": [
+    {"id": 1, "name": "Soggiorno", "active": true, "volume": 35, "source": "Player 1"},
+    {"id": 2, "name": "Cucina", "active": false, "volume": 20, "source": "Player 1"}
+  ],
+  "players": [
+    {
+      "id": 1,
+      "name": "Utente Demo",
+      "state": "playing",
+      "volume": 40,
+      "source": "Spotify",
+      "title": "Demo track",
+      "artist": "Demo artist"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "domain": "vivaldi_telemaco",
+  "name": "Vivaldi Telemaco",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/roberto-semenzato/ha-vivaldi-telemaco",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/roberto-semenzato/ha-vivaldi-telemaco/issues",
+  "requirements": [],
+  "version": "0.3.0",
+  "zeroconf": [
+    {
+      "name": "*telemaco*"
+    }
+  ]
+}

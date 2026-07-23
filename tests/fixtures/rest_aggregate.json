@@ -1,0 +1,51 @@
+{
+  "api": {
+    "device_id": "DEMO00000001",
+    "model": "telemaco_6z",
+    "version": "1.3.1"
+  },
+  "device": {
+    "device_actual_version": "2033.05.5",
+    "link": "SINGLE",
+    "ping": true,
+    "update_available": false
+  },
+  "hostnames": {
+    "device": "Telemaco Demo",
+    "inputs": {
+      "player1": {"name": "Utente Demo"}
+    }
+  },
+  "inputs": {
+    "player1": {"name": "Player 1", "mute": false, "volume": 42}
+  },
+  "metadata": {
+    "player1": {
+      "artist": "Artista",
+      "image": "https://example.invalid/cover.jpg",
+      "loop": true,
+      "shuffle": false,
+      "source": "spotify",
+      "status": "play",
+      "title": "Brano"
+    }
+  },
+  "presets": {
+    "player1": {
+      "presets": [{"id": 1, "name": "Metal", "playlist": ""}]
+    }
+  },
+  "matrix": {
+    "player1": {"out1": true, "out2": false}
+  },
+  "outputs": {
+    "mono": {
+      "ch1": {
+        "name": "Soggiorno",
+        "doorbell": true,
+        "amplified": true,
+        "impedence_8ohms": true
+      }
+    }
+  }
+}
