@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.2
+
+- Correzione dei comandi MQTT: volume, mute e controlli player non leggono più
+  parametri appartenenti ad altri comandi.
+- Eliminato il `KeyError: 'shuffle'` durante la regolazione del volume.
+
+## 0.3.1
+
+- Rimossa la dichiarazione Zeroconf incompleta che impediva l'avvio del
+  componente Zeroconf di Home Assistant.
+
 ## 0.3.0
 
 - Implementazione della specifica Telemaco RestAPI 1.2.0 completa.

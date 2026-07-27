@@ -208,28 +208,6 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
     async def _async_mqtt_command(self, command: str, data: dict[str, Any]) -> None:
         player = data.get("player")
         zone = data.get("zone")
-        mappings = {
-            "player_play": (f"inputs/player{player}/play_pause", 1),
-            "player_pause": (f"inputs/player{player}/play_pause", 0),
-            "player_stop": (f"inputs/player{player}/stop", 1),
-            "player_next": (f"inputs/player{player}/next", 1),
-            "player_previous": (f"inputs/player{player}/previous", 1),
-            "player_shuffle": (
-                f"inputs/player{player}/shuffle",
-                int(data["shuffle"]),
-            ),
-            "player_repeat": (
-                f"inputs/player{player}/repeat_all",
-                int(data["repeat"]),
-            ),
-            "player_preset": (
-                f"inputs/player{player}/play_preset",
-                data["preset"],
-            ),
-            "zone_volume": (f"outputs/mono/ch{zone}/volume", data["volume"]),
-            "zone_mute": (f"outputs/mono/ch{zone}/mute", int(data["mute"])),
-            "doorbell": ("doorbell/play", data.get("sound", 0)),
-        }
         if command == "zone_source":
             selected = int(str(data["source"]).split()[-1])
             for candidate in range(1, self.player_count + 1):
@@ -242,9 +220,35 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
             band = {"low": "equ1", "mid": "equ2", "high": "equ3"}[data["band"]]
             await self.mqtt.async_publish_topic(f"outputs/mono/ch{zone}/{band}", data["value"])
             return
-        if command not in mappings:
+
+        # Resolve only the requested command. Building one eager dictionary here
+        # used to access unrelated keys (for example ``shuffle`` during a volume
+        # command) and raised KeyError before anything could be published.
+        if command == "player_play":
+            topic, value = f"inputs/player{player}/play_pause", 1
+        elif command == "player_pause":
+            topic, value = f"inputs/player{player}/play_pause", 0
+        elif command == "player_stop":
+            topic, value = f"inputs/player{player}/stop", 1
+        elif command == "player_next":
+            topic, value = f"inputs/player{player}/next", 1
+        elif command == "player_previous":
+            topic, value = f"inputs/player{player}/previous", 1
+        elif command == "player_shuffle":
+            topic, value = f"inputs/player{player}/shuffle", int(data["shuffle"])
+        elif command == "player_repeat":
+            topic, value = f"inputs/player{player}/repeat_all", int(data["repeat"])
+        elif command == "player_preset":
+            topic, value = f"inputs/player{player}/play_preset", data["preset"]
+        elif command == "zone_volume":
+            topic, value = f"outputs/mono/ch{zone}/volume", data["volume"]
+        elif command == "zone_mute":
+            topic, value = f"outputs/mono/ch{zone}/mute", int(data["mute"])
+        elif command == "doorbell":
+            topic, value = "doorbell/play", data.get("sound", 0)
+        else:
             raise UpdateFailed(f"Command {command} is not supported by MQTT API 1.1")
-        topic, value = mappings[command]
+
         await self.mqtt.async_publish_topic(topic, value)
 
 
