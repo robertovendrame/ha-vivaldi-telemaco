@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.4
+
+- Correzione della collisione tra il modulo MQTT di Home Assistant e il modulo
+  MQTT interno dell'integrazione.
+
 ## 0.3.3
 
 - Attesa corretta del client MQTT di Home Assistant prima della sottoscrizione.

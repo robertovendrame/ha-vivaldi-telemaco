@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 import voluptuous as vol
-from homeassistant.components import mqtt
+from homeassistant.components import mqtt as ha_mqtt
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -79,8 +79,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) -> 
         )
     if transport in (TRANSPORT_MQTT, TRANSPORT_HYBRID):
         mqtt_ready = False
-        if mqtt.mqtt_config_entry_enabled(hass):
-            mqtt_ready = await mqtt.async_wait_for_mqtt_client(hass)
+        if ha_mqtt.mqtt_config_entry_enabled(hass):
+            mqtt_ready = await ha_mqtt.async_wait_for_mqtt_client(hass)
         if mqtt_ready:
             mqtt_client = TelemacoMqtt(hass, entry.data[CONF_MQTT_PREFIX])
         elif transport == TRANSPORT_MQTT:
