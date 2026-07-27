@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 import voluptuous as vol
+from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -34,6 +37,8 @@ from .const import (
 )
 from .coordinator import TelemacoCoordinator
 from .mqtt import TelemacoMqtt
+
+_LOGGER = logging.getLogger(__name__)
 
 type TelemacoConfigEntry = ConfigEntry[TelemacoCoordinator]
 
@@ -73,7 +78,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) -> 
             verify_ssl=entry.data[CONF_VERIFY_SSL],
         )
     if transport in (TRANSPORT_MQTT, TRANSPORT_HYBRID):
-        mqtt_client = TelemacoMqtt(hass, entry.data[CONF_MQTT_PREFIX])
+        mqtt_ready = False
+        if mqtt.mqtt_config_entry_enabled(hass):
+            mqtt_ready = await mqtt.async_wait_for_mqtt_client(hass)
+        if mqtt_ready:
+            mqtt_client = TelemacoMqtt(hass, entry.data[CONF_MQTT_PREFIX])
+        elif transport == TRANSPORT_MQTT:
+            raise ConfigEntryNotReady(
+                "MQTT transport selected, but the Home Assistant MQTT integration "
+                "is not configured"
+            )
+        else:
+            _LOGGER.warning(
+                "MQTT is not configured; %s is starting in REST-only fallback mode",
+                entry.title,
+            )
 
     coordinator = TelemacoCoordinator(hass, entry, api, mqtt_client)
     entry.runtime_data = coordinator

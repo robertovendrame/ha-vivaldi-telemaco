@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3
+
+- Attesa corretta del client MQTT di Home Assistant prima della sottoscrizione.
+- Fallback automatico a REST per le configurazioni ibride senza MQTT.
+- Errore riprovabile e comprensibile per le configurazioni solo MQTT prive di
+  un'integrazione MQTT configurata.
+
 ## 0.3.2
 
 - Correzione dei comandi MQTT: volume, mute e controlli player non leggono più
