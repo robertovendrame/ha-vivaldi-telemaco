@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Disable the per-zone equalizer entities by default.
+- Add the complete REST matrix as individually enableable route switches.
+- Add editable names for the device, players, physical inputs and zones.
+- Add a graphical preset selector for every player.
+
 ## 0.4.5
 
 - Automatically discover the real Telemaco root topic from the embedded broker.

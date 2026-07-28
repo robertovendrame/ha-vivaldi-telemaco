@@ -223,6 +223,19 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
 
     async def async_command(self, command: str, **payload: Any) -> None:
         """Send via MQTT when available, otherwise REST."""
+        if command in {
+            "matrix_route",
+            "rename_device",
+            "rename_input",
+            "rename_player",
+            "rename_zone",
+        }:
+            if self.api is None:
+                raise UpdateFailed(f"Command {command} requires the REST API")
+            await self.api.async_send_command(command, payload)
+            self._apply_optimistic_command(command, payload)
+            await self.async_request_refresh()
+            return
         if self.mqtt:
             await self._async_mqtt_command(command, payload)
             self._apply_optimistic_command(command, payload)
@@ -287,6 +300,37 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
     def _apply_optimistic_command(self, command: str, data: dict[str, Any]) -> None:
         """Keep REST-only controls responsive when firmware omits live output state."""
         if not self.data:
+            return
+        if command == "matrix_route":
+            source = str(data["source"])
+            zone_id = int(data["zone"])
+            active = bool(data["active"])
+            self.data.matrix.setdefault(source, {})[zone_id] = active
+            if source.startswith("player"):
+                player_id = _as_int(source.removeprefix("player"))
+                player = self.data.players.get(player_id)
+                if player:
+                    if active:
+                        player.routed_outputs.add(zone_id)
+                    else:
+                        player.routed_outputs.discard(zone_id)
+            self.async_set_updated_data(self.data)
+            return
+        if command == "rename_device":
+            self.data.name = str(data["name"])
+            self.async_set_updated_data(self.data)
+            return
+        if command == "rename_player":
+            self.data.players[int(data["player"])].name = str(data["name"])
+            self.async_set_updated_data(self.data)
+            return
+        if command == "rename_input":
+            self.data.input_names[str(data["input"])] = str(data["name"])
+            self.async_set_updated_data(self.data)
+            return
+        if command == "rename_zone":
+            self.data.zones[int(data["zone"])].name = str(data["name"])
+            self.async_set_updated_data(self.data)
             return
         player_id = data.get("player")
         if player_id is not None and command in ("player_volume", "player_mute"):

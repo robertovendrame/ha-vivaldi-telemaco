@@ -7,6 +7,13 @@ specifica completa **Telemaco RestAPI 1.2.0**.
 
 ## Funzioni
 
+- Matrice completa tra ingressi/player e uscite; le numerose entità avanzate
+  sono disponibili ma disabilitate di default.
+- Nomi modificabili per dispositivo, player, ingressi fisici e zone.
+- Selettore grafico dei preset per ogni player.
+- Equalizzatore a tre bande per zona, disabilitato di default per mantenere
+  ordinato l'elenco delle entità.
+
 - Configurazione interamente da interfaccia grafica.
 - Rilevamento locale mDNS/zeroconf.
 - REST locale JSON con access token.

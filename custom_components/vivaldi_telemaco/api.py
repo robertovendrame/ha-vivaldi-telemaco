@@ -185,6 +185,59 @@ class TelemacoApi:
         """Map Home Assistant actions to documented REST endpoints."""
         player = payload.get("player")
         zone = payload.get("zone")
+        if command == "matrix_route":
+            source = str(payload["source"])
+            matrix = dict(await self.request("GET", "/api/matrix/get"))
+            routes = matrix.get(source)
+            if not isinstance(routes, dict):
+                raise TelemacoProtocolError(f"Matrix source {source} is missing")
+            routes[f"out{zone}"] = bool(payload.get("active"))
+            return await self.request(
+                "POST",
+                "/api/matrix/set",
+                matrix,
+                authenticated=True,
+            )
+        if command in ("rename_device", "rename_player"):
+            hostnames = dict(await self.request("GET", "/api/hostnames/get"))
+            if command == "rename_device":
+                hostnames["device"] = str(payload["name"])
+            else:
+                inputs = hostnames.setdefault("inputs", {})
+                key = f"player{player}"
+                player_data = inputs.setdefault(key, {})
+                player_data["name"] = str(payload["name"])
+            return await self.request(
+                "POST",
+                "/api/hostnames/set",
+                hostnames,
+            )
+        if command == "rename_input":
+            inputs = dict(await self.request("GET", "/api/input/get"))
+            key = str(payload["input"])
+            input_data = inputs.get(key)
+            if not isinstance(input_data, dict):
+                raise TelemacoProtocolError(f"Input {key} is missing")
+            input_data["name"] = str(payload["name"])
+            return await self.request(
+                "POST",
+                "/api/input/set",
+                inputs,
+                authenticated=True,
+            )
+        if command == "rename_zone":
+            outputs = dict(await self.request("GET", "/api/output/get"))
+            mono = outputs.get("mono")
+            key = f"ch{zone}"
+            if not isinstance(mono, dict) or not isinstance(mono.get(key), dict):
+                raise TelemacoProtocolError(f"Output {key} is missing")
+            mono[key]["name"] = str(payload["name"])
+            return await self.request(
+                "POST",
+                "/api/output/set",
+                outputs,
+                authenticated=True,
+            )
         if command == "zone_source":
             selected = int(player) if player is not None else None
             matrix = dict(await self.request("GET", "/api/matrix/get"))

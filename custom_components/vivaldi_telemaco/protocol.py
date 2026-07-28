@@ -202,6 +202,16 @@ def _normalize_rest_aggregate(
     outputs = root.get("outputs", {})
     hostname_inputs = hostnames.get("inputs", {})
 
+    if isinstance(inputs, Mapping):
+        for index in range(1, 7):
+            key = f"aux{index}"
+            item = inputs.get(key, {})
+            state.input_names[key] = str(
+                item.get("name", f"Ingresso {index}")
+                if isinstance(item, Mapping)
+                else f"Ingresso {index}"
+            )
+
     mono_outputs = outputs.get("mono", {}) if isinstance(outputs, Mapping) else {}
     for index in range(1, zone_count + 1):
         output = mono_outputs.get(f"ch{index}", {}) if isinstance(mono_outputs, Mapping) else {}
@@ -257,4 +267,13 @@ def _normalize_rest_aggregate(
                     state.zones[output_id].source = player.name
                     state.zones[output_id].active = True
         state.players[index] = player
+
+    if isinstance(matrix, Mapping):
+        for source, routes in matrix.items():
+            if not isinstance(routes, Mapping):
+                continue
+            state.matrix[str(source)] = {
+                output_id: bool(routes.get(f"out{output_id}", False))
+                for output_id in range(1, zone_count + 1)
+            }
     return state

@@ -37,6 +37,7 @@ class TelemacoEqualizer(TelemacoEntity, NumberEntity):
     _attr_native_step = 1
     _attr_native_unit_of_measurement = UnitOfSoundPressure.DECIBEL
     _attr_icon = "mdi:tune-vertical"
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: TelemacoCoordinator, zone: int, band: str) -> None:
         super().__init__(coordinator)

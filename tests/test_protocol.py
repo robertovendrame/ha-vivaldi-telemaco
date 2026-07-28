@@ -75,6 +75,8 @@ def test_normalize_rest_aggregate() -> None:
     assert state.players[1].title == "Brano"
     assert state.players[1].repeat is True
     assert state.players[1].presets[1] == "Metal"
+    assert state.input_names["aux1"] == "Ingresso 1"
+    assert state.matrix["player1"][1] is True
 
 
 def test_normalize_rest_output_runtime_values_and_named_source() -> None:

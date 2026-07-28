@@ -66,5 +66,7 @@ class TelemacoState:
     players: dict[int, PlayerState] = field(default_factory=dict)
     sources: list[str] = field(default_factory=list)
     presets: dict[int, str] = field(default_factory=dict)
+    input_names: dict[str, str] = field(default_factory=dict)
+    matrix: dict[str, dict[int, bool]] = field(default_factory=dict)
     signals: dict[int, bool] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict, repr=False)

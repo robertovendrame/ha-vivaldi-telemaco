@@ -10,8 +10,10 @@ PLATFORMS: Final = [
     "event",
     "media_player",
     "number",
+    "select",
     "sensor",
     "switch",
+    "text",
 ]
 
 CONF_TRANSPORT: Final = "transport"
