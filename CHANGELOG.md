@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.5
+
+- Automatically discover the real Telemaco root topic from the embedded broker.
+- Migrate live reads and subsequent commands away from stale placeholder prefixes.
+
 ## 0.4.4
 
 - Run the persistent direct MQTT listener as a Home Assistant background task.

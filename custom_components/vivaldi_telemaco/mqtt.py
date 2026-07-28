@@ -94,11 +94,28 @@ class DirectTelemacoMqtt:
                 async with aiomqtt.Client(self.host, port=self.port) as client:
                     self._client = client
                     self._connected.set()
-                    await client.subscribe(f"{self.root_topic}/status/#", qos=0)
+                    topics = {
+                        f"{self.root_topic}/status/#",
+                        "vivaldi/+/status/#",
+                    }
+                    for topic_filter in topics:
+                        await client.subscribe(topic_filter, qos=0)
                     async for message in client.messages:
                         if self._callback is None:
                             continue
                         topic = str(message.topic)
+                        if "/status/" not in topic:
+                            continue
+                        detected_root = topic.split("/status/", 1)[0]
+                        if (
+                            detected_root.startswith("vivaldi/")
+                            and detected_root != self.root_topic
+                        ):
+                            _LOGGER.info(
+                                "Discovered Telemaco MQTT root topic %s",
+                                detected_root,
+                            )
+                            self.root_topic = detected_root
                         relative = topic.removeprefix(f"{self.root_topic}/")
                         payload = message.payload
                         if isinstance(payload, bytes):
