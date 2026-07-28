@@ -186,12 +186,12 @@ class TelemacoApi:
         player = payload.get("player")
         zone = payload.get("zone")
         if command == "zone_source":
-            selected = int(payload["player"])
+            selected = int(player) if player is not None else None
             matrix = dict(await self.request("GET", "/api/matrix/get"))
             for candidate in range(1, 7):
                 route = matrix.get(f"player{candidate}")
                 if isinstance(route, dict):
-                    route[f"out{zone}"] = candidate == selected
+                    route[f"out{zone}"] = selected is not None and candidate == selected
             return await self.request(
                 "POST",
                 "/api/matrix/set",

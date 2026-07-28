@@ -8,8 +8,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import SOURCE_NAMES
 from .coordinator import TelemacoCoordinator
 from .entity import TelemacoEntity
+
+ZONE_SOURCE_NONE = SOURCE_NAMES[0]
 
 PLAYER_FEATURES = (
     MediaPlayerEntityFeature.PLAY
@@ -24,6 +27,7 @@ ZONE_FEATURES = (
     MediaPlayerEntityFeature.VOLUME_SET
     | MediaPlayerEntityFeature.VOLUME_MUTE
     | MediaPlayerEntityFeature.SELECT_SOURCE
+    | MediaPlayerEntityFeature.TURN_OFF
 )
 
 
@@ -84,14 +88,14 @@ class TelemacoZone(TelemacoEntity, MediaPlayerEntity):
         zone = self.coordinator.data.zones[self.index]
         if zone.player in self.coordinator.data.players:
             return self.coordinator.data.players[zone.player].name
-        return zone.source
+        return zone.source or ZONE_SOURCE_NONE
 
     @property
     def source_list(self) -> list[str]:
-        return [
+        return [ZONE_SOURCE_NONE, *[
             self.coordinator.data.players[index].name
             for index in range(1, self.coordinator.player_count + 1)
-        ]
+        ]]
 
     async def async_set_volume_level(self, volume: float) -> None:
         await self.coordinator.async_command(
@@ -102,6 +106,11 @@ class TelemacoZone(TelemacoEntity, MediaPlayerEntity):
         await self.coordinator.async_command("zone_mute", zone=self.index, mute=mute)
 
     async def async_select_source(self, source: str) -> None:
+        if source == ZONE_SOURCE_NONE:
+            await self.coordinator.async_command(
+                "zone_source", zone=self.index, player=None
+            )
+            return
         player = next(
             (
                 index
@@ -114,6 +123,11 @@ class TelemacoZone(TelemacoEntity, MediaPlayerEntity):
             raise ValueError(f"Unknown Telemaco player: {source}")
         await self.coordinator.async_command(
             "zone_source", zone=self.index, player=player
+        )
+
+    async def async_turn_off(self) -> None:
+        await self.coordinator.async_command(
+            "zone_source", zone=self.index, player=None
         )
 
 

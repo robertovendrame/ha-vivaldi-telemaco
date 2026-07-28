@@ -36,7 +36,7 @@ class TelemacoDndSwitch(TelemacoEntity, SwitchEntity):
 
     @property
     def name(self) -> str:
-        return f"{self.coordinator.data.zones[self.zone].name} non disturbare"
+        return f"{self.coordinator.data.zones[self.zone].name} escludi campanello"
 
     @property
     def is_on(self) -> bool:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- Aggiunge lo spegnimento nativo delle zone, scollegandole da tutti i player.
+- Aggiunge `Nessuna` al selettore sorgente come alternativa allo spegnimento.
+- Rinomina il comando DND in `Escludi campanello` per chiarirne la funzione.
+
 ## 0.4.0
 
 - Aggiunge il supporto locale ai moduli Vivaldi C4IO tramite WebSocket.

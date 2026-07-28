@@ -237,11 +237,11 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         player = data.get("player")
         zone = data.get("zone")
         if command == "zone_source":
-            selected = int(data["player"])
+            selected = int(player) if player is not None else None
             for candidate in range(1, self.player_count + 1):
                 await self.mqtt.async_publish_topic(
                     f"zones/mono/player{candidate}/output{zone}",
-                    int(candidate == selected),
+                    int(selected is not None and candidate == selected),
                 )
             return
         if command == "zone_eq":
@@ -291,10 +291,16 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         elif command == "zone_mute":
             zone.muted = bool(data["mute"])
         elif command == "zone_source":
-            player = int(data["player"])
-            zone.player = player
-            zone.source = self.data.players[player].name
-            zone.active = True
+            player_id = data.get("player")
+            if player_id is None:
+                zone.player = None
+                zone.source = None
+                zone.active = False
+            else:
+                player = int(player_id)
+                zone.player = player
+                zone.source = self.data.players[player].name
+                zone.active = True
         else:
             return
         self.async_set_updated_data(self.data)
