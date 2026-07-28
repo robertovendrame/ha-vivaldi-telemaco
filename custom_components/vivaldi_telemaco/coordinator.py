@@ -225,6 +225,7 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         """Send via MQTT when available, otherwise REST."""
         if self.mqtt:
             await self._async_mqtt_command(command, payload)
+            self._apply_optimistic_command(command, payload)
             return
         if self.api:
             await self.api.async_send_command(command, payload)
@@ -268,6 +269,10 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
             topic, value = f"inputs/player{player}/repeat_all", int(data["repeat"])
         elif command == "player_preset":
             topic, value = f"inputs/player{player}/play_preset", data["preset"]
+        elif command == "player_volume":
+            topic, value = f"inputs/player{player}/volume", data["volume"]
+        elif command == "player_mute":
+            topic, value = f"inputs/player{player}/mute", int(data["mute"])
         elif command == "zone_volume":
             topic, value = f"outputs/mono/ch{zone}/volume", data["volume"]
         elif command == "zone_mute":
@@ -282,6 +287,20 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
     def _apply_optimistic_command(self, command: str, data: dict[str, Any]) -> None:
         """Keep REST-only controls responsive when firmware omits live output state."""
         if not self.data:
+            return
+        player_id = data.get("player")
+        if player_id is not None and command in ("player_volume", "player_mute"):
+            player = self.data.players.get(int(player_id))
+            if not player:
+                return
+            if command == "player_volume":
+                player.volume = max(
+                    0.0,
+                    min(1.0, float(data["volume"]) / 100),
+                )
+            else:
+                player.muted = bool(data["mute"])
+            self.async_set_updated_data(self.data)
             return
         zone = self.data.zones.get(int(data.get("zone", 0)))
         if not zone:

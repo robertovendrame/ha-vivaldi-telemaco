@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2
+
+- Aggiunge regolazione volume 0-100% e mute/unmute per ogni player.
+- Supporta i comandi player volume e mute sia tramite REST sia tramite MQTT.
+- Aggiorna immediatamente lo stato Home Assistant dopo ogni comando.
+
 ## 0.4.1
 
 - Aggiunge lo spegnimento nativo delle zone, scollegandole da tutti i player.

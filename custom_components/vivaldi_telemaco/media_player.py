@@ -22,6 +22,8 @@ PLAYER_FEATURES = (
     | MediaPlayerEntityFeature.PREVIOUS_TRACK
     | MediaPlayerEntityFeature.SHUFFLE_SET
     | MediaPlayerEntityFeature.REPEAT_SET
+    | MediaPlayerEntityFeature.VOLUME_SET
+    | MediaPlayerEntityFeature.VOLUME_MUTE
 )
 ZONE_FEATURES = (
     MediaPlayerEntityFeature.VOLUME_SET
@@ -207,6 +209,20 @@ class TelemacoPlayer(TelemacoEntity, MediaPlayerEntity):
 
     async def async_media_previous_track(self) -> None:
         await self.coordinator.async_command("player_previous", player=self.index)
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        await self.coordinator.async_command(
+            "player_volume",
+            player=self.index,
+            volume=round(volume * 100),
+        )
+
+    async def async_mute_volume(self, mute: bool) -> None:
+        await self.coordinator.async_command(
+            "player_mute",
+            player=self.index,
+            mute=mute,
+        )
 
     async def async_set_shuffle(self, shuffle: bool) -> None:
         await self.coordinator.async_command("player_shuffle", player=self.index, shuffle=shuffle)

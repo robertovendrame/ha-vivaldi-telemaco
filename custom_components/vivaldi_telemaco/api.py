@@ -198,6 +198,24 @@ class TelemacoApi:
                 matrix,
                 authenticated=True,
             )
+        if command in ("player_volume", "player_mute"):
+            inputs = dict(await self.request("GET", "/api/input/get"))
+            player_data = inputs.get(f"player{player}")
+            if not isinstance(player_data, dict):
+                raise TelemacoProtocolError(f"Player {player} is missing from input data")
+            if command == "player_volume":
+                player_data["volume"] = max(
+                    0,
+                    min(100, int(payload.get("volume", 0))),
+                )
+            else:
+                player_data["mute"] = bool(payload.get("mute"))
+            return await self.request(
+                "POST",
+                "/api/input/set",
+                inputs,
+                authenticated=True,
+            )
         routes: dict[str, tuple[str, str]] = {
             "player_play": ("PUT", f"/api/player{player}/play"),
             "player_pause": ("PUT", f"/api/player{player}/pause"),
