@@ -69,9 +69,41 @@ def test_normalize_rest_aggregate() -> None:
     assert state.name == "Telemaco Demo"
     assert state.firmware == "2033.05.5"
     assert state.zones[1].name == "Soggiorno"
-    assert state.zones[1].source == "Player 1"
+    assert state.zones[1].source == "Utente Demo"
     assert state.players[1].name == "Utente Demo"
     assert state.players[1].volume == 0.42
     assert state.players[1].title == "Brano"
     assert state.players[1].repeat is True
     assert state.players[1].presets[1] == "Metal"
+
+
+def test_normalize_rest_output_runtime_values_and_named_source() -> None:
+    state = protocol.normalize_state(
+        {
+            "api": {"device_id": "demo"},
+            "device": {},
+            "metadata": {},
+            "presets": {},
+            "inputs": {},
+            "hostnames": {"inputs": {"player1": {"name": "Centro medico"}}},
+            "outputs": {
+                "mono": {
+                    "ch1": {
+                        "name": "Bagno",
+                        "amplified": True,
+                        "volume": 50,
+                        "mute": False,
+                        "dnd": True,
+                    }
+                }
+            },
+            "matrix": {"player1": {"out1": True}},
+        },
+        fallback_id="fallback",
+        zone_count=1,
+        player_count=1,
+    )
+    assert state.zones[1].volume == 0.5
+    assert state.zones[1].muted is False
+    assert state.zones[1].dnd is True
+    assert state.zones[1].source == "Centro medico"

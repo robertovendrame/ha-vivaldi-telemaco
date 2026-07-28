@@ -81,11 +81,17 @@ class TelemacoZone(TelemacoEntity, MediaPlayerEntity):
 
     @property
     def source(self) -> str | None:
-        return self.coordinator.data.zones[self.index].source
+        zone = self.coordinator.data.zones[self.index]
+        if zone.player in self.coordinator.data.players:
+            return self.coordinator.data.players[zone.player].name
+        return zone.source
 
     @property
     def source_list(self) -> list[str]:
-        return [f"Player {index}" for index in range(1, self.coordinator.player_count + 1)]
+        return [
+            self.coordinator.data.players[index].name
+            for index in range(1, self.coordinator.player_count + 1)
+        ]
 
     async def async_set_volume_level(self, volume: float) -> None:
         await self.coordinator.async_command(
@@ -96,7 +102,19 @@ class TelemacoZone(TelemacoEntity, MediaPlayerEntity):
         await self.coordinator.async_command("zone_mute", zone=self.index, mute=mute)
 
     async def async_select_source(self, source: str) -> None:
-        await self.coordinator.async_command("zone_source", zone=self.index, source=source)
+        player = next(
+            (
+                index
+                for index, item in self.coordinator.data.players.items()
+                if item.name == source
+            ),
+            None,
+        )
+        if player is None:
+            raise ValueError(f"Unknown Telemaco player: {source}")
+        await self.coordinator.async_command(
+            "zone_source", zone=self.index, player=player
+        )
 
 
 class TelemacoPlayer(TelemacoEntity, MediaPlayerEntity):

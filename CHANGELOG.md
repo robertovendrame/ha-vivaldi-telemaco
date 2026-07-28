@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.5
+
+- Legge `volume`, `mute` e `dnd` quando il firmware li espone in
+  `/api/output/get`.
+- In modalità solo REST conserva e aggiorna immediatamente l'ultimo volume
+  noto, evitando che il controllo torni a 0% dopo ogni polling.
+- Mostra i nomi configurati dei player nel selettore sorgente delle zone.
+
 ## 0.3.4
 
 - Correzione della collisione tra il modulo MQTT di Home Assistant e il modulo

@@ -211,6 +211,9 @@ def _normalize_rest_aggregate(
             id=index,
             name=str(output.get("name", f"Zona {index}")),
             available=bool(output.get("amplified", True)),
+            muted=_bool(_first(output, "mute", "muted", default=False)),
+            volume=_volume(_first(output, "volume", "level", "vol", default=0)),
+            dnd=_bool(_first(output, "dnd", "do_not_disturb", default=False)),
         )
 
     for index in range(1, player_count + 1):
@@ -251,7 +254,7 @@ def _normalize_rest_aggregate(
                 if bool(route.get(f"out{output_id}", False)):
                     player.routed_outputs.add(output_id)
                     state.zones[output_id].player = index
-                    state.zones[output_id].source = f"Player {index}"
+                    state.zones[output_id].source = player.name
                     state.zones[output_id].active = True
         state.players[index] = player
     return state

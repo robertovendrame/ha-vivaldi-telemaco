@@ -98,6 +98,31 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
                     previous = self.data.players.get(index)
                     if previous and player.preset is None:
                         player.preset = previous.preset
+            elif self.data:
+                # The documented REST output resource does not expose live
+                # volume/mute values on every firmware. Preserve the last known
+                # values when those fields are absent instead of resetting the
+                # Home Assistant controls to zero after each poll.
+                raw_outputs = payload.get("outputs", {})
+                mono_outputs = (
+                    raw_outputs.get("mono", {})
+                    if isinstance(raw_outputs, dict)
+                    else {}
+                )
+                for index, zone in refreshed.zones.items():
+                    raw_zone = (
+                        mono_outputs.get(f"ch{index}", {})
+                        if isinstance(mono_outputs, dict)
+                        else {}
+                    )
+                    previous = self.data.zones.get(index)
+                    if previous and isinstance(raw_zone, dict):
+                        if not any(key in raw_zone for key in ("volume", "level", "vol")):
+                            zone.volume = previous.volume
+                        if not any(key in raw_zone for key in ("mute", "muted")):
+                            zone.muted = previous.muted
+                        if not any(key in raw_zone for key in ("dnd", "do_not_disturb")):
+                            zone.dnd = previous.dnd
             return refreshed
         except TelemacoError as err:
             raise UpdateFailed(str(err)) from err
@@ -201,6 +226,7 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
             return
         if self.api:
             await self.api.async_send_command(command, payload)
+            self._apply_optimistic_command(command, payload)
             await self.async_request_refresh()
             return
         raise UpdateFailed("No command transport is available")
@@ -209,7 +235,7 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         player = data.get("player")
         zone = data.get("zone")
         if command == "zone_source":
-            selected = int(str(data["source"]).split()[-1])
+            selected = int(data["player"])
             for candidate in range(1, self.player_count + 1):
                 await self.mqtt.async_publish_topic(
                     f"zones/mono/player{candidate}/output{zone}",
@@ -250,6 +276,26 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
             raise UpdateFailed(f"Command {command} is not supported by MQTT API 1.1")
 
         await self.mqtt.async_publish_topic(topic, value)
+
+    def _apply_optimistic_command(self, command: str, data: dict[str, Any]) -> None:
+        """Keep REST-only controls responsive when firmware omits live output state."""
+        if not self.data:
+            return
+        zone = self.data.zones.get(int(data.get("zone", 0)))
+        if not zone:
+            return
+        if command == "zone_volume":
+            zone.volume = max(0.0, min(1.0, float(data["volume"]) / 100))
+        elif command == "zone_mute":
+            zone.muted = bool(data["mute"])
+        elif command == "zone_source":
+            player = int(data["player"])
+            zone.player = player
+            zone.source = self.data.players[player].name
+            zone.active = True
+        else:
+            return
+        self.async_set_updated_data(self.data)
 
 
 def _as_bool(value: str) -> bool:

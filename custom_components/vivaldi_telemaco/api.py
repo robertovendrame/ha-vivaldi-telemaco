@@ -186,7 +186,7 @@ class TelemacoApi:
         player = payload.get("player")
         zone = payload.get("zone")
         if command == "zone_source":
-            selected = int(str(payload["source"]).split()[-1])
+            selected = int(payload["player"])
             matrix = dict(await self.request("GET", "/api/matrix/get"))
             for candidate in range(1, 7):
                 route = matrix.get(f"player{candidate}")
