@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.4
+
+- Run the persistent direct MQTT listener as a Home Assistant background task.
+- Prevent the MQTT listener from delaying or timing out Home Assistant startup.
+
 ## 0.4.3
 
 - Aggiunge la connessione diretta al broker MQTT interno del Telemaco quando

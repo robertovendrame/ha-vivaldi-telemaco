@@ -83,7 +83,7 @@ class DirectTelemacoMqtt:
         """Start the reconnecting direct subscription."""
         self._callback = on_message
         if self._task is None:
-            self._task = self.hass.async_create_task(
+            self._task = self.hass.async_create_background_task(
                 self._async_run(),
                 name=f"vivaldi_telemaco_mqtt_{self.host}",
             )
