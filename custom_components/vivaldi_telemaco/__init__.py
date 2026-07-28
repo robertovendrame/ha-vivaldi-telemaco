@@ -9,7 +9,7 @@ from homeassistant.components import mqtt as ha_mqtt
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -23,11 +23,14 @@ from .const import (
     ATTR_SOUND,
     CONF_API_TOKEN,
     CONF_C4IO_DEVICES,
+    CONF_MQTT_BROKER,
+    CONF_MQTT_PORT,
     CONF_MQTT_PREFIX,
     CONF_PASSWORD,
     CONF_TRANSPORT,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
+    DEFAULT_MQTT_PORT,
     DOMAIN,
     PLATFORMS,
     SERVICE_DOORBELL,
@@ -38,7 +41,7 @@ from .const import (
     TRANSPORT_MQTT,
 )
 from .coordinator import TelemacoCoordinator
-from .mqtt import TelemacoMqtt
+from .mqtt import DirectTelemacoMqtt, TelemacoMqtt
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,19 +83,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) -> 
             verify_ssl=entry.data[CONF_VERIFY_SSL],
         )
     if transport in (TRANSPORT_MQTT, TRANSPORT_HYBRID):
+        mqtt_prefix = entry.options.get(
+            CONF_MQTT_PREFIX,
+            entry.data[CONF_MQTT_PREFIX],
+        )
         mqtt_ready = False
         if ha_mqtt.mqtt_config_entry_enabled(hass):
             mqtt_ready = await ha_mqtt.async_wait_for_mqtt_client(hass)
         if mqtt_ready:
-            mqtt_client = TelemacoMqtt(hass, entry.data[CONF_MQTT_PREFIX])
-        elif transport == TRANSPORT_MQTT:
-            raise ConfigEntryNotReady(
-                "MQTT transport selected, but the Home Assistant MQTT integration "
-                "is not configured"
-            )
+            mqtt_client = TelemacoMqtt(hass, mqtt_prefix)
         else:
-            _LOGGER.warning(
-                "MQTT is not configured; %s is starting in REST-only fallback mode",
+            mqtt_client = DirectTelemacoMqtt(
+                hass,
+                entry.options.get(CONF_MQTT_BROKER, entry.data[CONF_HOST]),
+                entry.options.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT),
+                mqtt_prefix,
+            )
+            _LOGGER.info(
+                "Home Assistant MQTT is not configured; %s is using the "
+                "Telemaco embedded broker directly",
                 entry.title,
             )
 

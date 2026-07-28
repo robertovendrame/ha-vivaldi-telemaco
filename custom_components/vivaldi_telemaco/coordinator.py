@@ -28,7 +28,7 @@ from .const import (
 )
 from .exceptions import TelemacoError
 from .models import TelemacoState
-from .mqtt import TelemacoMqtt
+from .mqtt import DirectTelemacoMqtt, TelemacoMqtt
 from .protocol import normalize_state
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         hass: HomeAssistant,
         entry: ConfigEntry,
         api: TelemacoApi | None,
-        mqtt_client: TelemacoMqtt | None,
+        mqtt_client: DirectTelemacoMqtt | TelemacoMqtt | None,
     ) -> None:
         self.entry = entry
         self.api = api

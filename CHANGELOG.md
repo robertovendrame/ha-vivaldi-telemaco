@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3
+
+- Aggiunge la connessione diretta al broker MQTT interno del Telemaco quando
+  Home Assistant MQTT non è configurato.
+- Riceve il volume reale delle zone anche dopo un riavvio di Home Assistant.
+- Aggiunge broker, porta e prefisso MQTT alle opzioni dell'integrazione.
+
 ## 0.4.2
 
 - Aggiunge regolazione volume 0-100% e mute/unmute per ogni player.

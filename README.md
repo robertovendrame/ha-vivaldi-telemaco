@@ -58,6 +58,12 @@ In HACS scegliere:
 La modalità ibrida usa gli eventi MQTT per aggiornamenti immediati e REST come
 controllo periodico/fallback.
 
+Se l'integrazione MQTT di Home Assistant non è configurata, l'integrazione si
+collega automaticamente al broker MQTT incorporato nel Telemaco. Broker, porta
+e prefisso dei topic possono essere corretti dalle opzioni dell'integrazione.
+Questo collegamento diretto permette di leggere i valori dinamici, come il
+volume reale delle zone, che alcuni firmware non espongono tramite REST.
+
 ## Moduli C4IO
 
 Dalla versione 0.4 è possibile collegare uno o più moduli Vivaldi C4IO tramite

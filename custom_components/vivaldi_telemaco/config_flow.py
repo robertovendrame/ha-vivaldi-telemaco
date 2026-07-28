@@ -19,6 +19,8 @@ from .c4io import parse_c4io_devices
 from .const import (
     CONF_API_TOKEN,
     CONF_C4IO_DEVICES,
+    CONF_MQTT_BROKER,
+    CONF_MQTT_PORT,
     CONF_MQTT_PREFIX,
     CONF_PASSWORD,
     CONF_PLAYER_COUNT,
@@ -27,6 +29,7 @@ from .const import (
     CONF_USERNAME,
     CONF_VERIFY_SSL,
     CONF_ZONE_COUNT,
+    DEFAULT_MQTT_PORT,
     DEFAULT_MQTT_PREFIX,
     DEFAULT_NAME,
     DEFAULT_PLAYER_COUNT,
@@ -202,6 +205,18 @@ class TelemacoOptionsFlow(config_entries.OptionsFlow):
                         multiline=True,
                     )
                 ),
+                vol.Optional(
+                    CONF_MQTT_BROKER,
+                    default=current.get(CONF_MQTT_BROKER, self.entry.data[CONF_HOST]),
+                ): str,
+                vol.Optional(
+                    CONF_MQTT_PORT,
+                    default=current.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+                vol.Optional(
+                    CONF_MQTT_PREFIX,
+                    default=current.get(CONF_MQTT_PREFIX, DEFAULT_MQTT_PREFIX),
+                ): str,
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
