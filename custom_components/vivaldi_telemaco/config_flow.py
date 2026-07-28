@@ -10,12 +10,15 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .api import TelemacoApi
+from .c4io import parse_c4io_devices
 from .const import (
     CONF_API_TOKEN,
+    CONF_C4IO_DEVICES,
     CONF_MQTT_PREFIX,
     CONF_PASSWORD,
     CONF_PLAYER_COUNT,
@@ -165,8 +168,14 @@ class TelemacoOptionsFlow(config_entries.OptionsFlow):
         self.entry = entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            try:
+                parse_c4io_devices(user_input.get(CONF_C4IO_DEVICES))
+            except ValueError:
+                errors["base"] = "invalid_c4io_devices"
+            else:
+                return self.async_create_entry(title="", data=user_input)
         current = {**self.entry.data, **self.entry.options}
         schema = vol.Schema(
             {
@@ -185,6 +194,14 @@ class TelemacoOptionsFlow(config_entries.OptionsFlow):
                     CONF_PLAYER_COUNT,
                     default=current.get(CONF_PLAYER_COUNT, DEFAULT_PLAYER_COUNT),
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=6)),
+                vol.Optional(
+                    CONF_C4IO_DEVICES,
+                    default=current.get(CONF_C4IO_DEVICES, ""),
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        multiline=True,
+                    )
+                ),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)

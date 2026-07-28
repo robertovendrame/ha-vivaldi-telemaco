@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import TelemacoApi
+from .c4io import C4IOManager
 from .const import (
     CONF_PLAYER_COUNT,
     CONF_SCAN_INTERVAL,
@@ -46,6 +47,7 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         self.entry = entry
         self.api = api
         self.mqtt = mqtt_client
+        self.c4io_manager: C4IOManager
         self.zone_count = entry.options.get(
             CONF_ZONE_COUNT, entry.data.get(CONF_ZONE_COUNT, DEFAULT_ZONE_COUNT)
         )

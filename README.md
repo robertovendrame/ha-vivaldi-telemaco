@@ -58,6 +58,25 @@ In HACS scegliere:
 La modalità ibrida usa gli eventi MQTT per aggiornamenti immediati e REST come
 controllo periodico/fallback.
 
+## Moduli C4IO
+
+Dalla versione 0.4 è possibile collegare uno o più moduli Vivaldi C4IO tramite
+il loro WebSocket locale. Aprire le opzioni dell'integrazione e inserire un
+dispositivo per riga nel formato:
+
+```text
+STUDIO 1=192.0.2.83
+STUDIO 2=192.0.2.84
+UFFICIO=192.0.2.90
+```
+
+Per ogni C4IO vengono creati quattro eventi `Ingresso 1` ... `Ingresso 4`.
+Gli eventi disponibili sono `short_press` e `long_press` e vengono rilevati
+direttamente dal modulo, anche quando alla pressione non è associato alcun
+comando Telemaco. Sono inoltre disponibili lo stato della connessione e, come
+entità diagnostiche disabilitate per impostazione predefinita, firmware e RSSI
+Wi-Fi.
+
 ## Servizi
 
 ### `vivaldi_telemaco.play_preset`

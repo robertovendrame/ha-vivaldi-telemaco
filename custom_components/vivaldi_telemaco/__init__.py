@@ -14,6 +14,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import TelemacoApi
+from .c4io import C4IOManager, parse_c4io_devices
 from .const import (
     ATTR_COMMAND,
     ATTR_PAYLOAD,
@@ -21,6 +22,7 @@ from .const import (
     ATTR_PRESET,
     ATTR_SOUND,
     CONF_API_TOKEN,
+    CONF_C4IO_DEVICES,
     CONF_MQTT_PREFIX,
     CONF_PASSWORD,
     CONF_TRANSPORT,
@@ -95,6 +97,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) -> 
             )
 
     coordinator = TelemacoCoordinator(hass, entry, api, mqtt_client)
+    coordinator.c4io_manager = C4IOManager(
+        async_get_clientsession(hass),
+        parse_c4io_devices(entry.options.get(CONF_C4IO_DEVICES, "")),
+    )
     entry.runtime_data = coordinator
 
     if mqtt_client:
@@ -104,6 +110,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) -> 
     if api:
         await coordinator.async_config_entry_first_refresh()
 
+    coordinator.c4io_manager.start()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     _register_services(hass)
@@ -157,6 +164,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) ->
     """Unload Telemaco and MQTT subscriptions."""
     coordinator = entry.runtime_data
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unloaded and coordinator.mqtt:
-        await coordinator.mqtt.async_close()
+    if unloaded:
+        await coordinator.c4io_manager.async_close()
+        if coordinator.mqtt:
+            await coordinator.mqtt.async_close()
     return unloaded

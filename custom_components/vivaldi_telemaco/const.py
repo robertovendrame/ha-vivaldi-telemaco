@@ -4,7 +4,15 @@ from datetime import timedelta
 from typing import Final
 
 DOMAIN: Final = "vivaldi_telemaco"
-PLATFORMS: Final = ["binary_sensor", "button", "media_player", "number", "sensor", "switch"]
+PLATFORMS: Final = [
+    "binary_sensor",
+    "button",
+    "event",
+    "media_player",
+    "number",
+    "sensor",
+    "switch",
+]
 
 CONF_TRANSPORT: Final = "transport"
 CONF_API_TOKEN: Final = "api_token"
@@ -16,6 +24,7 @@ CONF_ZONE_COUNT: Final = "zone_count"
 CONF_PLAYER_COUNT: Final = "player_count"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
 CONF_API_PROFILE: Final = "api_profile"
+CONF_C4IO_DEVICES: Final = "c4io_devices"
 
 TRANSPORT_API: Final = "api"
 TRANSPORT_MQTT: Final = "mqtt"

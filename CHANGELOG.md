@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- Aggiunge il supporto locale ai moduli Vivaldi C4IO tramite WebSocket.
+- Crea quattro entità evento per ogni C4IO con `short_press` e `long_press`,
+  indipendenti dalle associazioni configurate sul modulo.
+- Aggiunge stato di connessione e sensori diagnostici firmware/RSSI.
+- Gestisce automaticamente disconnessioni e riconnessioni dei C4IO.
+
 ## 0.3.5
 
 - Legge `volume`, `mute` e `dnd` quando il firmware li espone in

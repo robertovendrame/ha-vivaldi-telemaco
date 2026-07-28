@@ -36,8 +36,12 @@
         "data": {
           "scan_interval": "Intervallo aggiornamento REST (secondi)",
           "zone_count": "Numero di zone",
-          "player_count": "Numero di player"
+          "player_count": "Numero di player",
+          "c4io_devices": "Dispositivi C4IO (una riga per dispositivo: Nome=IP)"
         }
+      },
+      "error": {
+        "invalid_c4io_devices": "Elenco C4IO non valido. Usa una riga Nome=IP per ogni dispositivo"
       }
     }
   },
