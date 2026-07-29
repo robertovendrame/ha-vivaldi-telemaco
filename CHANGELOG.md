@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.3
+
+- Accept string responses from the multiroom REST status endpoint.
+- Read independent master and slave REST resources concurrently.
+- Route player rename commands to the linked slave with the correct local index.
+- Use the player count from integration options when calculating the slave offset.
+- Keep valid REST volume, mute, DND and EQ values in hybrid mode.
+- Clamp MQTT volume values and keep matrix, zone and player routing state synchronized.
+- Lock direct MQTT root discovery to one device instead of switching between publishers.
+
 ## 0.5.2
 
 - Debounce the short pause/idle bursts emitted by Spotify during track changes.
