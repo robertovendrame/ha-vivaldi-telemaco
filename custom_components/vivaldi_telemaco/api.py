@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import time
 from collections.abc import Mapping
 from typing import Any
@@ -42,9 +43,12 @@ class TelemacoApi:
         port: int = 80,
         verify_ssl: bool = True,
         timeout: int = 10,
+        peer_player_offset: int = 3,
     ) -> None:
         scheme = "https" if port == 443 else "http"
         self.base_url = f"{scheme}://{host}:{port}"
+        self.host = host
+        self.port = port
         self._session = session
         self._token = token
         self._username = username
@@ -52,6 +56,8 @@ class TelemacoApi:
         self._token_expires_at = 0.0
         self._verify_ssl = verify_ssl
         self._timeout = ClientTimeout(total=timeout)
+        self._peer_player_offset = peer_player_offset
+        self._peer_api: TelemacoApi | None = None
 
     @property
     def headers(self) -> dict[str, str]:
@@ -177,7 +183,121 @@ class TelemacoApi:
             raise TelemacoProtocolError(
                 "No documented Telemaco REST endpoint was reachable"
             ) from last_error
+        await self._async_merge_peer_players(combined)
         return combined
+
+    def _new_peer_api(self, host: str) -> TelemacoApi:
+        """Create a client for the linked Telemaco peer."""
+        return TelemacoApi(
+            self._session,
+            host,
+            token=None,
+            username=self._username,
+            password=self._password,
+            port=self.port,
+            verify_ssl=self._verify_ssl,
+            timeout=int(self._timeout.total or 10),
+            peer_player_offset=self._peer_player_offset,
+        )
+
+    @staticmethod
+    def _valid_peer_ip(value: Any) -> str | None:
+        """Return a usable peer address from a device status field."""
+        if not isinstance(value, str):
+            return None
+        candidate = value.strip()
+        try:
+            ipaddress.ip_address(candidate)
+        except ValueError:
+            return None
+        return candidate
+
+    async def _async_find_peer(self, combined: Mapping[str, Any]) -> TelemacoApi | None:
+        """Find the only linked or nearby Telemaco device."""
+        if self._peer_api is not None:
+            return self._peer_api
+
+        device = combined.get("device", {})
+        candidate: str | None = None
+        if isinstance(device, Mapping):
+            link = str(device.get("link", "")).upper()
+            field = "slave" if link == "MULTI" else "master" if link == "SLAVE" else ""
+            if field:
+                candidate = self._valid_peer_ip(device.get(field))
+
+        if candidate is None:
+            try:
+                devices = await self.request("GET", "/api/devices/get")
+            except (TelemacoConnectionError, TelemacoProtocolError):
+                return None
+            items = devices.get("devices", [])
+            candidates = [
+                ip
+                for item in items
+                if isinstance(item, Mapping)
+                and (ip := self._valid_peer_ip(item.get("ip"))) is not None
+                and ip != self.host
+            ]
+            if len(candidates) == 1:
+                candidate = candidates[0]
+
+        if candidate is None or candidate == self.host:
+            return None
+        self._peer_api = self._new_peer_api(candidate)
+        if isinstance(combined, dict):
+            combined["peer"] = {"host": candidate}
+        return self._peer_api
+
+    async def _async_merge_peer_players(self, combined: dict[str, Any]) -> None:
+        """Merge the slave's local player1..n resources after the master players."""
+        peer = await self._async_find_peer(combined)
+        if peer is None:
+            return
+        combined["peer"] = {"host": peer.host}
+
+        peer_resources: dict[str, Mapping[str, Any]] = {}
+        for key, endpoint in {
+            "metadata": "/api/metadata/get",
+            "presets": "/api/presets/get",
+            "inputs": "/api/input/get",
+            "hostnames": "/api/hostnames/get",
+        }.items():
+            try:
+                peer_resources[key] = await peer.request("GET", endpoint)
+            except (TelemacoConnectionError, TelemacoProtocolError):
+                continue
+
+        offset = self._peer_player_offset
+        for resource in ("metadata", "presets", "inputs"):
+            target = combined.setdefault(resource, {})
+            source = peer_resources.get(resource, {})
+            if not isinstance(target, dict) or not isinstance(source, Mapping):
+                continue
+            for key, value in source.items():
+                if key.startswith("player") and key.removeprefix("player").isdigit():
+                    local_id = int(key.removeprefix("player"))
+                    target[f"player{offset + local_id}"] = value
+
+        target_hostnames = combined.setdefault("hostnames", {})
+        peer_hostnames = peer_resources.get("hostnames", {})
+        if isinstance(target_hostnames, dict) and isinstance(peer_hostnames, Mapping):
+            target_inputs = target_hostnames.setdefault("inputs", {})
+            peer_inputs = peer_hostnames.get("inputs", {})
+            if isinstance(target_inputs, dict) and isinstance(peer_inputs, Mapping):
+                for key, value in peer_inputs.items():
+                    if key.startswith("player") and key.removeprefix("player").isdigit():
+                        local_id = int(key.removeprefix("player"))
+                        target_inputs[f"player{offset + local_id}"] = value
+
+    async def _async_player_command_target(
+        self,
+        player: Any,
+    ) -> tuple[TelemacoApi, int]:
+        """Return the correct device and local player number."""
+        player_id = int(player)
+        if player_id <= self._peer_player_offset or self._peer_api is None:
+            return self, player_id
+        return self._peer_api, player_id - self._peer_player_offset
 
     async def async_send_command(
         self, command: str, payload: Mapping[str, Any]
@@ -185,6 +305,23 @@ class TelemacoApi:
         """Map Home Assistant actions to documented REST endpoints."""
         player = payload.get("player")
         zone = payload.get("zone")
+        if command in {
+            "player_play",
+            "player_pause",
+            "player_stop",
+            "player_next",
+            "player_previous",
+            "player_shuffle",
+            "player_repeat",
+            "player_preset",
+            "player_volume",
+            "player_mute",
+        }:
+            target, local_player = await self._async_player_command_target(player)
+            if target is not self:
+                forwarded = dict(payload)
+                forwarded["player"] = local_player
+                return await target.async_send_command(command, forwarded)
         if command == "matrix_route":
             source = str(payload["source"])
             matrix = dict(await self.request("GET", "/api/matrix/get"))

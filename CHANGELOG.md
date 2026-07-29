@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1
+
+- Prefer the documented REST endpoints for zone volume and mute, with MQTT fallback.
+- Discover the linked Telemaco peer and merge its player resources.
+- Remap slave player 1-3 to Home Assistant player 4-6.
+- Send slave preset commands to the slave device with the correct local player number.
+- Preserve slave preset lists across temporary peer communication failures.
+
 ## 0.5.0
 
 - Disable the per-zone equalizer entities by default.

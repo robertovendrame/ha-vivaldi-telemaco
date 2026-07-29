@@ -98,8 +98,11 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
                 refreshed.signals.update(self.data.signals)
                 for index, player in refreshed.players.items():
                     previous = self.data.players.get(index)
-                    if previous and player.preset is None:
-                        player.preset = previous.preset
+                    if previous:
+                        if player.preset is None:
+                            player.preset = previous.preset
+                        if not player.presets:
+                            player.presets = previous.presets.copy()
             elif self.data:
                 # The documented REST output resource does not expose live
                 # volume/mute values on every firmware. Preserve the last known
@@ -223,6 +226,33 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
 
     async def async_command(self, command: str, **payload: Any) -> None:
         """Send via MQTT when available, otherwise REST."""
+        if command in {"zone_volume", "zone_mute"} and self.api is not None:
+            try:
+                await self.api.async_send_command(command, payload)
+            except TelemacoError as err:
+                if self.mqtt is None:
+                    raise UpdateFailed(str(err)) from err
+                _LOGGER.warning(
+                    "REST %s failed, falling back to MQTT: %s",
+                    command,
+                    err,
+                )
+                await self._async_mqtt_command(command, payload)
+            self._apply_optimistic_command(command, payload)
+            return
+        if command == "player_preset" and self.api is not None:
+            try:
+                await self.api.async_send_command(command, payload)
+            except TelemacoError as err:
+                if self.mqtt is None:
+                    raise UpdateFailed(str(err)) from err
+                _LOGGER.warning(
+                    "REST player preset failed, falling back to MQTT: %s",
+                    err,
+                )
+                await self._async_mqtt_command(command, payload)
+            self._apply_optimistic_command(command, payload)
+            return
         if command in {
             "matrix_route",
             "rename_device",
