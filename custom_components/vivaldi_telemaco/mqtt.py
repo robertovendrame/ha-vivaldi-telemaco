@@ -78,6 +78,7 @@ class DirectTelemacoMqtt:
         self._task: asyncio.Task[None] | None = None
         self._connected = asyncio.Event()
         self._closing = False
+        self._discovered_root: str | None = None
 
     async def async_subscribe(self, on_message: TopicCallback) -> None:
         """Start the reconnecting direct subscription."""
@@ -111,10 +112,21 @@ class DirectTelemacoMqtt:
                             detected_root.startswith("vivaldi/")
                             and detected_root != self.root_topic
                         ):
+                            if (
+                                self._discovered_root is not None
+                                and detected_root != self._discovered_root
+                            ):
+                                _LOGGER.debug(
+                                    "Ignoring MQTT root %s after locking onto %s",
+                                    detected_root,
+                                    self._discovered_root,
+                                )
+                                continue
                             _LOGGER.info(
                                 "Discovered Telemaco MQTT root topic %s",
                                 detected_root,
                             )
+                            self._discovered_root = detected_root
                             self.root_topic = detected_root
                         relative = topic.removeprefix(f"{self.root_topic}/")
                         payload = message.payload
