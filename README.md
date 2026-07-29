@@ -2,7 +2,7 @@
 
 Integrazione custom HACS per il sistema audio multiroom **Vivaldi Telemaco**.
 
-La versione 0.3 implementa i topic ufficiali **TELEMACO MQTT API 1.1** e la
+La versione 0.5 implementa i topic ufficiali **TELEMACO MQTT API 1.1** e la
 specifica completa **Telemaco RestAPI 1.2.0**.
 
 ## Funzioni
