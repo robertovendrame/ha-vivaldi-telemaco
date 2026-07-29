@@ -102,3 +102,16 @@ def test_slave_player_command_is_remapped() -> None:
     assert peer.commands == [
         ("player_preset", {"player": 1, "preset": 7}),
     ]
+
+
+def test_slave_player_rename_is_remapped() -> None:
+    main, peer = _main_with_peer()
+    asyncio.run(
+        main.async_send_command(
+            "rename_player",
+            {"player": 5, "name": "Studio slave"},
+        )
+    )
+    assert peer.commands == [
+        ("rename_player", {"player": 2, "name": "Studio slave"}),
+    ]
