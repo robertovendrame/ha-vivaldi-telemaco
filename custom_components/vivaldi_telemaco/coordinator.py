@@ -90,15 +90,32 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
             payload = await self.api.async_get_status()
             refreshed = self._normalize(dict(payload))
             if self.mqtt and self.data:
+                raw_outputs = payload.get("outputs", {})
+                mono_outputs = (
+                    raw_outputs.get("mono", {})
+                    if isinstance(raw_outputs, dict)
+                    else {}
+                )
                 for index, zone in refreshed.zones.items():
                     previous = self.data.zones.get(index)
-                    if previous:
-                        zone.volume = previous.volume
-                        zone.muted = previous.muted
-                        zone.eq_low = previous.eq_low
-                        zone.eq_mid = previous.eq_mid
-                        zone.eq_high = previous.eq_high
-                        zone.dnd = previous.dnd
+                    raw_zone = (
+                        mono_outputs.get(f"ch{index}", {})
+                        if isinstance(mono_outputs, dict)
+                        else {}
+                    )
+                    if previous and isinstance(raw_zone, dict):
+                        if not any(key in raw_zone for key in ("volume", "level", "vol")):
+                            zone.volume = previous.volume
+                        if not any(key in raw_zone for key in ("mute", "muted")):
+                            zone.muted = previous.muted
+                        if not any(key in raw_zone for key in ("equ1", "eq_low")):
+                            zone.eq_low = previous.eq_low
+                        if not any(key in raw_zone for key in ("equ2", "eq_mid")):
+                            zone.eq_mid = previous.eq_mid
+                        if not any(key in raw_zone for key in ("equ3", "eq_high")):
+                            zone.eq_high = previous.eq_high
+                        if not any(key in raw_zone for key in ("dnd", "do_not_disturb")):
+                            zone.dnd = previous.dnd
                 refreshed.signals.update(self.data.signals)
                 for index, player in refreshed.players.items():
                     previous = self.data.players.get(index)
@@ -153,7 +170,7 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
             player = state.players.get(int(match[1]))
             if player:
                 if match[2] == "volume":
-                    player.volume = _as_int(value) / 100
+                    player.volume = max(0.0, min(1.0, _as_int(value) / 100))
                 elif match[2] == "mute":
                     player.muted = _as_bool(value)
                 else:
@@ -276,7 +293,7 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         if key == "mute":
             zone.muted = _as_bool(value)
         elif key == "volume":
-            zone.volume = _as_int(value) / 100
+            zone.volume = max(0.0, min(1.0, _as_int(value) / 100))
         elif key == "name":
             zone.name = value
         else:
@@ -407,6 +424,16 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
                         player.routed_outputs.add(zone_id)
                     else:
                         player.routed_outputs.discard(zone_id)
+                zone = self.data.zones.get(zone_id)
+                if zone:
+                    if active:
+                        zone.player = player_id
+                        zone.source = player.name if player else f"Player {player_id}"
+                        zone.active = True
+                    elif zone.player == player_id:
+                        zone.player = None
+                        zone.source = None
+                        zone.active = False
             self.async_set_updated_data(self.data)
             return
         if command == "rename_device":
@@ -457,6 +484,11 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
                 zone.player = player
                 zone.source = self.data.players[player].name
                 zone.active = True
+            for candidate, player_state in self.data.players.items():
+                if candidate == zone.player:
+                    player_state.routed_outputs.add(zone.id)
+                else:
+                    player_state.routed_outputs.discard(zone.id)
         else:
             return
         self.async_set_updated_data(self.data)
