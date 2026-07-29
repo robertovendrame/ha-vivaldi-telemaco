@@ -180,7 +180,10 @@ def _normalize_rest_aggregate(
     if not isinstance(hostnames, Mapping):
         hostnames = {}
 
-    link_mode = str(device.get("link", root.get("multiroom", "SINGLE")))
+    multiroom = root.get("multiroom", "SINGLE")
+    if isinstance(multiroom, Mapping):
+        multiroom = _first(multiroom, "status", "link", "mode", default="SINGLE")
+    link_mode = str(device.get("link") or multiroom).upper()
     state = TelemacoState(
         serial=str(api_data.get("device_id", fallback_id)),
         name=str(hostnames.get("device", "Vivaldi Telemaco")),
