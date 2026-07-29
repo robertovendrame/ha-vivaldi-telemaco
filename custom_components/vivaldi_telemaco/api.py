@@ -68,7 +68,7 @@ class TelemacoApi:
             headers["X-Auth-Token"] = self._token
         return headers
 
-    async def _decode(self, response: ClientResponse) -> Mapping[str, Any]:
+    async def _decode(self, response: ClientResponse) -> Any:
         if response.status in (401, 403):
             raise TelemacoAuthenticationError("Invalid Telemaco access token")
         if response.status >= 400:
@@ -77,7 +77,7 @@ class TelemacoApi:
             payload = await response.json(content_type=None)
         except (ValueError, TypeError) as err:
             raise TelemacoProtocolError("Telemaco returned a non-JSON response") from err
-        if not isinstance(payload, Mapping):
+        if not isinstance(payload, (Mapping, str, int, float, bool)) and payload is not None:
             raise TelemacoProtocolError("Telemaco returned an unsupported JSON payload")
         return payload
 
@@ -89,21 +89,21 @@ class TelemacoApi:
         *,
         authenticated: bool = False,
         retry_auth: bool = True,
-    ) -> Mapping[str, Any]:
+    ) -> Any:
         """Perform an authenticated request."""
         if authenticated:
             await self.async_ensure_token()
         try:
             async with asyncio.timeout(self._timeout.total):
-                response = await self._session.request(
+                async with self._session.request(
                     method,
                     f"{self.base_url}{endpoint}",
                     headers=self.headers,
                     json=payload,
                     ssl=self._verify_ssl,
                     timeout=self._timeout,
-                )
-                return await self._decode(response)
+                ) as response:
+                    return await self._decode(response)
         except TelemacoAuthenticationError:
             if authenticated and retry_auth and self._username and self._password:
                 await self.async_login()
@@ -169,16 +169,27 @@ class TelemacoApi:
 
     async def async_get_status(self) -> Mapping[str, Any]:
         """Read and combine the documented Telemaco REST resources."""
-        combined: dict[str, Any] = {}
-        last_error: Exception | None = None
-        for key, endpoint in STATUS_ENDPOINTS.items():
+        async def read_resource(key: str, endpoint: str) -> tuple[str, Any, Exception | None]:
             try:
-                combined[key] = dict(await self.request("GET", endpoint))
+                return key, await self.request("GET", endpoint), None
             except TelemacoAuthenticationError:
                 raise
             except (TelemacoConnectionError, TelemacoProtocolError) as err:
-                last_error = err
+                return key, None, err
+
+        results = await asyncio.gather(
+            *(read_resource(key, endpoint) for key, endpoint in STATUS_ENDPOINTS.items())
+        )
+        combined: dict[str, Any] = {}
+        last_error: Exception | None = None
+        for key, value, error in results:
+            if error is not None:
+                last_error = error
                 continue
+            if isinstance(value, Mapping):
+                combined[key] = dict(value)
+            elif key == "multiroom" and isinstance(value, str):
+                combined[key] = value
         if not combined:
             raise TelemacoProtocolError(
                 "No documented Telemaco REST endpoint was reachable"
@@ -255,17 +266,27 @@ class TelemacoApi:
             return
         combined["peer"] = {"host": peer.host}
 
-        peer_resources: dict[str, Mapping[str, Any]] = {}
-        for key, endpoint in {
+        resources = {
             "metadata": "/api/metadata/get",
             "presets": "/api/presets/get",
             "inputs": "/api/input/get",
             "hostnames": "/api/hostnames/get",
-        }.items():
+        }
+
+        async def read_peer(key: str, endpoint: str) -> tuple[str, Mapping[str, Any] | None]:
             try:
-                peer_resources[key] = await peer.request("GET", endpoint)
+                value = await peer.request("GET", endpoint)
+                return key, value if isinstance(value, Mapping) else None
             except (TelemacoConnectionError, TelemacoProtocolError):
-                continue
+                return key, None
+
+        peer_resources = {
+            key: value
+            for key, value in await asyncio.gather(
+                *(read_peer(key, endpoint) for key, endpoint in resources.items())
+            )
+            if value is not None
+        }
 
         offset = self._peer_player_offset
         for resource in ("metadata", "presets", "inputs"):
@@ -335,6 +356,12 @@ class TelemacoApi:
                 matrix,
                 authenticated=True,
             )
+        if command == "rename_player":
+            target, local_player = await self._async_player_command_target(player)
+            if target is not self:
+                forwarded = dict(payload)
+                forwarded["player"] = local_player
+                return await target.async_send_command(command, forwarded)
         if command in ("rename_device", "rename_player"):
             hostnames = dict(await self.request("GET", "/api/hostnames/get"))
             if command == "rename_device":
