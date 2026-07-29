@@ -10,5 +10,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/robertovendrame/ha-vivaldi-telemaco/issues",
   "requirements": ["aiomqtt==2.5.1"],
-  "version": "0.5.2"
+  "version": "0.5.3"
 }
