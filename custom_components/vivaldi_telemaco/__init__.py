@@ -82,7 +82,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) -> 
             password=entry.data.get(CONF_PASSWORD) or None,
             port=entry.data[CONF_PORT],
             verify_ssl=entry.data[CONF_VERIFY_SSL],
-            peer_player_offset=max(1, entry.data[CONF_PLAYER_COUNT] // 2),
+            peer_player_offset=max(
+                1,
+                entry.options.get(
+                    CONF_PLAYER_COUNT,
+                    entry.data[CONF_PLAYER_COUNT],
+                )
+                // 2,
+            ),
         )
     if transport in (TRANSPORT_MQTT, TRANSPORT_HYBRID):
         mqtt_prefix = entry.options.get(
