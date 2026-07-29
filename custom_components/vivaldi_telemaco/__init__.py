@@ -176,6 +176,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: TelemacoConfigEntry) ->
     coordinator = entry.runtime_data
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
+        await coordinator.async_close()
         await coordinator.c4io_manager.async_close()
         if coordinator.mqtt:
             await coordinator.mqtt.async_close()

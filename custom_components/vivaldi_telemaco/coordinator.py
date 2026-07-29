@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from datetime import timedelta
@@ -32,6 +33,7 @@ from .mqtt import DirectTelemacoMqtt, TelemacoMqtt
 from .protocol import normalize_state
 
 _LOGGER = logging.getLogger(__name__)
+PLAYBACK_TRANSITION_DELAY = 2
 
 
 class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
@@ -54,6 +56,8 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         self.player_count = entry.options.get(
             CONF_PLAYER_COUNT, entry.data.get(CONF_PLAYER_COUNT, DEFAULT_PLAYER_COUNT)
         )
+        self._playback_tasks: dict[int, asyncio.Task[None]] = {}
+        self._pending_player_states: dict[int, str] = {}
         transport = entry.data[CONF_TRANSPORT]
         interval = (
             timedelta(seconds=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
@@ -196,15 +200,74 @@ class TelemacoCoordinator(DataUpdateCoordinator[TelemacoState]):
         elif key == "source_id":
             player.source = SOURCE_NAMES.get(_as_int(value), value)
         elif key == "stop" and _as_bool(value):
-            player.state = "idle"
+            self._apply_filtered_player_state(player_id, "idle")
         elif key == "play_pause":
-            player.state = "playing" if _as_bool(value) else "paused"
+            self._apply_filtered_player_state(
+                player_id,
+                "playing" if _as_bool(value) else "paused",
+            )
         elif key == "shuffle":
             player.shuffle = _as_bool(value)
         elif key == "repeat_all":
             player.repeat = _as_bool(value)
         elif key == "active_preset":
             player.preset = _as_int(value)
+
+    @callback
+    def _apply_filtered_player_state(self, player_id: int, new_state: str) -> None:
+        """Suppress Spotify track-change pause/idle bursts."""
+        state = self.data
+        if state is None or player_id not in state.players:
+            return
+        player = state.players[player_id]
+
+        if new_state == "playing":
+            if task := self._playback_tasks.pop(player_id, None):
+                task.cancel()
+            self._pending_player_states.pop(player_id, None)
+            player.state = "playing"
+            return
+
+        if player.state != "playing":
+            player.state = new_state
+            return
+
+        previous = self._pending_player_states.get(player_id)
+        self._pending_player_states[player_id] = (
+            "idle" if new_state == "idle" or previous == "idle" else "paused"
+        )
+        if player_id not in self._playback_tasks:
+            self._playback_tasks[player_id] = self.hass.async_create_background_task(
+                self._async_confirm_player_state(player_id),
+                name=f"vivaldi_telemaco_player_{player_id}_state_filter",
+            )
+
+    async def _async_confirm_player_state(self, player_id: int) -> None:
+        """Apply a pause or idle state only when it persists."""
+        current_task = asyncio.current_task()
+        try:
+            await asyncio.sleep(PLAYBACK_TRANSITION_DELAY)
+            new_state = self._pending_player_states.pop(player_id, None)
+            if (
+                new_state is not None
+                and self.data is not None
+                and player_id in self.data.players
+            ):
+                self.data.players[player_id].state = new_state
+                self.async_set_updated_data(self.data)
+        finally:
+            if self._playback_tasks.get(player_id) is current_task:
+                self._playback_tasks.pop(player_id, None)
+
+    async def async_close(self) -> None:
+        """Cancel delayed playback-state updates."""
+        tasks = list(self._playback_tasks.values())
+        self._playback_tasks.clear()
+        self._pending_player_states.clear()
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     def _apply_output(self, state: TelemacoState, channel: int, key: str, value: str) -> None:
         zone = state.zones.get(channel)

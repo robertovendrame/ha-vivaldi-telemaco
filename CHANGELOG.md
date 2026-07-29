@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+- Debounce the short pause/idle bursts emitted by Spotify during track changes.
+- Keep real pause and stop states, applying them after a two-second confirmation.
+- Cancel pending playback transitions cleanly when the integration unloads.
+
 ## 0.5.1
 
 - Prefer the documented REST endpoints for zone volume and mute, with MQTT fallback.
