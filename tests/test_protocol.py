@@ -109,3 +109,21 @@ def test_normalize_rest_output_runtime_values_and_named_source() -> None:
     assert state.zones[1].muted is False
     assert state.zones[1].dnd is True
     assert state.zones[1].source == "Centro medico"
+
+
+def test_normalize_string_multiroom_status() -> None:
+    state = protocol.normalize_state(
+        {
+            "api": {"device_id": "demo"},
+            "device": {},
+            "metadata": {},
+            "matrix": {},
+            "outputs": {},
+            "multiroom": "slave",
+        },
+        fallback_id="fallback",
+        zone_count=1,
+        player_count=1,
+    )
+    assert state.link_mode == "SLAVE"
+    assert state.paired is True
